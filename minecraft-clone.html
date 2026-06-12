@@ -2,6 +2,7 @@
 <html lang="en">
 <head>
 <meta charset="UTF-8">
+<meta name="viewport" content="width=device-width,initial-scale=1,maximum-scale=1,user-scalable=no">
 <link rel="icon" type="image/x-icon" href="favicon.ico">
 <title>Voxelcraft - Survival Update</title>
 <style>
@@ -128,6 +129,73 @@
   .chat-sys  { color:#ffd24a; }
   @keyframes chatFade { 0%{opacity:1} 65%{opacity:1} 100%{opacity:0} }
 
+  /* ===== TOUCH CONTROLS ===== */
+  #touch-controls { display:none; touch-action:none; }
+  body.touch-device #touch-controls { display:block; }
+  #joystick-zone {
+    position:fixed; bottom:0; left:0; width:44%; height:44%;
+    z-index:7; touch-action:none; }
+  #joystick-base {
+    position:fixed; width:110px; height:110px; border-radius:50%;
+    background:rgba(255,255,255,0.10); border:3px solid rgba(255,255,255,0.32);
+    display:none; transform:translate(-50%,-50%);
+    pointer-events:none; z-index:8; }
+  #joystick-knob {
+    position:fixed; width:52px; height:52px; border-radius:50%;
+    background:rgba(255,255,255,0.32); border:2px solid rgba(255,255,255,0.65);
+    display:none; transform:translate(-50%,-50%);
+    pointer-events:none; z-index:9; }
+  #look-zone {
+    position:fixed; top:0; right:0; width:56%; height:100%;
+    z-index:7; touch-action:none; }
+  #btn-jump {
+    position:fixed; bottom:18px; right:18px;
+    width:80px; height:80px; border-radius:50%;
+    background:rgba(255,255,255,0.15); border:3px solid rgba(255,255,255,0.45);
+    z-index:11; display:flex; align-items:center; justify-content:center;
+    font-size:32px; color:#fff; user-select:none; touch-action:none;
+    text-shadow:1px 1px 3px #000; }
+  #btn-place {
+    position:fixed; bottom:114px; right:18px;
+    width:68px; height:68px; border-radius:14px;
+    background:rgba(80,200,80,0.18); border:3px solid rgba(80,200,80,0.55);
+    z-index:11; display:flex; align-items:center; justify-content:center;
+    flex-direction:column; gap:2px;
+    font-size:11px; color:#90ff90; user-select:none; touch-action:none;
+    text-shadow:1px 1px 2px #000; line-height:1.2; text-align:center; }
+  #btn-place span { font-size:22px; }
+  /* active flash for buttons */
+  #btn-jump:active, #btn-place:active {
+    background:rgba(255,255,255,0.35); }
+  /* hide kb key labels on touch */
+  body.touch-device .slot .key { display:none; }
+
+  /* ===== RESPONSIVE ===== */
+  @media (max-width:768px){
+    .slot { width:40px; height:40px; }
+    .slot img { width:26px; height:26px; }
+    .slot .cnt { font-size:11px; }
+    #hearts, #hunger { transform:translateX(-50%) scale(0.85); }
+    #armor { bottom:134px; font-size:15px; }
+    #item-name { bottom:95px; }
+    #chat-log { max-width:260px; font-size:11px; bottom:95px; }
+    #hud { font-size:10px; }
+    #invpanel { max-width:96vw; overflow-y:auto; max-height:90vh;
+      transform:scale(0.88); transform-origin:center center; }
+    #invpanel .islot { width:38px; height:38px; }
+    #invpanel .islot img { width:26px; height:26px; }
+    .mc-btn { font-size:13px; padding:10px 14px; }
+    .net-input { font-size:14px; padding:8px; }
+    .mpanel { max-width:92vw; }
+  }
+  @media (max-width:480px){
+    .slot { width:34px; height:34px; }
+    .slot img { width:22px; height:22px; }
+    #invpanel { transform:scale(0.78); }
+    #btn-jump { width:70px; height:70px; font-size:28px; }
+    #btn-place { width:60px; height:60px; right:100px; bottom:18px; border-radius:12px; }
+  }
+
   /* ===== MAIN MENU ===== */
   #mainmenu{position:fixed;inset:0;z-index:25;display:flex;flex-direction:column;align-items:center;justify-content:center;overflow:hidden;}
   #menubg{position:absolute;inset:0;image-rendering:pixelated;}
@@ -163,6 +231,14 @@
 <div id="toast"></div>
 <div id="item-name"></div>
 <div id="chat-log"></div>
+<div id="touch-controls">
+  <div id="joystick-zone"></div>
+  <div id="joystick-base"></div>
+  <div id="joystick-knob"></div>
+  <div id="look-zone"></div>
+  <div id="btn-jump">&#8679;</div>
+  <div id="btn-place"><span>&#9632;</span>Place</div>
+</div>
 <div id="mode-badge" class="survival">SURVIVAL</div>
 <div id="armor"></div>
 <div id="hunger"></div>
@@ -1876,7 +1952,9 @@ document.addEventListener("keydown",e=>{
 document.addEventListener("keyup",e=>keys[e.code]=false);
 overlay.addEventListener("click",()=>{ if(!player.dead&&!uiOpen) renderer.domElement.requestPointerLock(); });
 document.getElementById("btnRespawn").addEventListener("click",e=>{e.stopPropagation();respawn();});
+let touchLocked=false;
 document.addEventListener("pointerlockchange",()=>{
+  if(touchLocked) return; // mobile: we own the lock state
   locked=document.pointerLockElement===renderer.domElement;
   const menuUp=document.getElementById("mainmenu").style.display!=="none";
   overlay.style.display=(locked||player.dead||uiOpen||menuUp)?"none":"flex";
@@ -2712,7 +2790,7 @@ function animate(){
   requestAnimationFrame(animate);
   const dt=Math.min(clock.getDelta(),0.05);
   elapsed+=dt;
-  const playing=(locked||uiOpen)&&!player.dead;
+  const playing=(locked||touchLocked||uiOpen)&&!player.dead;
 
   updateChunks();
   flushRemesh(6);
@@ -2834,7 +2912,15 @@ function drawMenuBg(){
 }
 function startGame(){
   document.getElementById('mainmenu').style.display='none';
-  renderer.domElement.requestPointerLock();
+  if('ontouchstart' in window || navigator.maxTouchPoints>0){
+    touchLocked=true; locked=true;
+    document.body.classList.add('touch-device');
+    document.getElementById('touch-controls').style.display='block';
+    initTouchControls();
+    overlay.style.display='none';
+  } else {
+    renderer.domElement.requestPointerLock();
+  }
   netConnect();
 }
 document.getElementById('mbtn-play').addEventListener('click',()=>menuPanel('mpanel-play'));
@@ -3126,6 +3212,143 @@ function netUpdatePlayers(dt){
   });
 }
 /* ============================================================================ */
+
+/* ============================ TOUCH CONTROLS ============================ */
+let touchControlsInited=false;
+function initTouchControls(){
+  if(touchControlsInited) return;
+  touchControlsInited=true;
+
+  const jzone=document.getElementById('joystick-zone');
+  const jbase=document.getElementById('joystick-base');
+  const jknob=document.getElementById('joystick-knob');
+  const lzone=document.getElementById('look-zone');
+  const btnJump=document.getElementById('btn-jump');
+  const btnPlace=document.getElementById('btn-place');
+
+  // ── Dynamic joystick (left zone) ─────────────────────────────────────────
+  let jid=null, jbx=0, jby=0;
+  const JR=55; // max radius in px
+
+  jzone.addEventListener('touchstart',e=>{
+    e.preventDefault();
+    if(jid!==null) return;
+    const t=e.changedTouches[0];
+    jid=t.identifier; jbx=t.clientX; jby=t.clientY;
+    jbase.style.left=jbx+'px'; jbase.style.top=jby+'px'; jbase.style.display='block';
+    jknob.style.left=jbx+'px'; jknob.style.top=jby+'px'; jknob.style.display='block';
+  },{passive:false});
+
+  jzone.addEventListener('touchmove',e=>{
+    e.preventDefault();
+    for(const t of e.changedTouches){
+      if(t.identifier!==jid) continue;
+      const dx=t.clientX-jbx, dy=t.clientY-jby;
+      const d=Math.hypot(dx,dy)||0.001;
+      const s=Math.min(d,JR)/d;
+      jknob.style.left=(jbx+dx*s)+'px';
+      jknob.style.top =(jby+dy*s)+'px';
+      const dead=JR*0.22;
+      keys['KeyW']=dy<-dead; keys['KeyS']=dy>dead;
+      keys['KeyA']=dx<-dead; keys['KeyD']=dx>dead;
+      // diagonal: allow combos (both W+A, W+D etc.)
+    }
+  },{passive:false});
+
+  const jend=e=>{
+    for(const t of e.changedTouches){
+      if(t.identifier!==jid) continue;
+      jid=null;
+      keys['KeyW']=keys['KeyS']=keys['KeyA']=keys['KeyD']=false;
+      jbase.style.display='none'; jknob.style.display='none';
+    }
+  };
+  jzone.addEventListener('touchend',jend,{passive:false});
+  jzone.addEventListener('touchcancel',jend,{passive:false});
+
+  // ── Look + break zone (right side) ───────────────────────────────────────
+  let lid=null, lpx=0, lpy=0, ltapTimer=0, lmoved=false;
+
+  lzone.addEventListener('touchstart',e=>{
+    e.preventDefault();
+    if(lid!==null||player.dead||uiOpen) return;
+    const t=e.changedTouches[0];
+    lid=t.identifier; lpx=t.clientX; lpy=t.clientY;
+    lmoved=false; ltapTimer=0;
+    leftDown=true; // holding = mine / attack
+  },{passive:false});
+
+  lzone.addEventListener('touchmove',e=>{
+    e.preventDefault();
+    for(const t of e.changedTouches){
+      if(t.identifier!==lid) continue;
+      const dx=t.clientX-lpx, dy=t.clientY-lpy;
+      if(Math.hypot(dx,dy)>4) lmoved=true;
+      // rotate camera
+      player.yaw  -=dx*sensMultiplier*3.5;
+      player.pitch-=dy*sensMultiplier*3.5;
+      player.pitch=Math.max(-Math.PI/2+0.01,Math.min(Math.PI/2-0.01,player.pitch));
+      lpx=t.clientX; lpy=t.clientY;
+    }
+  },{passive:false});
+
+  const lend=e=>{
+    for(const t of e.changedTouches){
+      if(t.identifier!==lid) continue;
+      lid=null; leftDown=false;
+      // quick tap with no drag → one-shot melee / mob hit
+      if(!lmoved){
+        const mob=pickMob();
+        const netHit=pickNetPlayer();
+        if(netHit) pvpDamage(netHit);
+        else if(mob) attackMob(mob);
+      }
+    }
+  };
+  lzone.addEventListener('touchend',lend,{passive:false});
+  lzone.addEventListener('touchcancel',lend,{passive:false});
+
+  // ── Jump button ───────────────────────────────────────────────────────────
+  btnJump.addEventListener('touchstart',e=>{
+    e.preventDefault();
+    keys['Space']=true;
+  },{passive:false});
+  const jumpEnd=e=>{ e.preventDefault(); keys['Space']=false; };
+  btnJump.addEventListener('touchend',jumpEnd,{passive:false});
+  btnJump.addEventListener('touchcancel',jumpEnd,{passive:false});
+
+  // ── Place button ──────────────────────────────────────────────────────────
+  btnPlace.addEventListener('touchstart',e=>{
+    e.preventDefault();
+    if(player.dead||uiOpen) return;
+    rightDown=true; placeTimer=0.25; doRightAction();
+  },{passive:false});
+  const placeEnd=e=>{ e.preventDefault(); rightDown=false; };
+  btnPlace.addEventListener('touchend',placeEnd,{passive:false});
+  btnPlace.addEventListener('touchcancel',placeEnd,{passive:false});
+
+  // ── Prevent default scroll / zoom on game canvas ─────────────────────────
+  renderer.domElement.addEventListener('touchstart',e=>e.preventDefault(),{passive:false});
+  renderer.domElement.addEventListener('touchmove', e=>e.preventDefault(),{passive:false});
+
+  // ── Open inventory on hotbar long-press (touch) ───────────────────────────
+  let invLongPress=null;
+  document.getElementById('hotbar').addEventListener('touchstart',e=>{
+    invLongPress=setTimeout(()=>{
+      if(!uiOpen) openInv(2);
+    },600);
+  },{passive:true});
+  document.getElementById('hotbar').addEventListener('touchend',()=>clearTimeout(invLongPress),{passive:true});
+
+  // ── Reposition HUD so touch buttons don't overlap ────────────────────────
+  const hotbarEl=document.getElementById('hotbar');
+  hotbarEl.style.bottom='106px'; // lift above buttons
+  document.getElementById('hearts').style.bottom='158px';
+  document.getElementById('hunger').style.bottom='178px';
+  document.getElementById('armor').style.bottom='198px';
+  document.getElementById('item-name').style.bottom='210px';
+}
+/* ===================================================================== */
 
 animate();
 
