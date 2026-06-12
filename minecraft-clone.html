@@ -706,231 +706,554 @@ function canvasTex(canvas){
   t.magFilter=t.minFilter=THREE.NearestFilter;
   return t;
 }
-function speckle(g,base,jit){
-  for (let x=0;x<16;x++) for (let y=0;y<16;y++){
-    const j=(Math.random()-0.5)*jit;
-    g.fillStyle=`rgb(${base[0]+j|0},${base[1]+j|0},${base[2]+j|0})`;
-    g.fillRect(x,y,1,1);
+// draw a 16x16 pixel map from a palette + 16-row string array
+function pxmap(g,pal,rows){
+  for(let y=0;y<rows.length;y++)for(let x=0;x<rows[y].length;x++){
+    const c=pal[rows[y][x]];if(c){g.fillStyle=c;g.fillRect(x,y,1,1);}
   }
 }
-const TEXDEFS={
-  grass_top: g => {
-    g.fillStyle = "#6aaa40"; g.fillRect(0,0,16,16);
-    for(let i=0;i<40;i++){
-      g.fillStyle = (Math.random()>0.5)?"#598e35":"#79c04a";
-      let x = Math.random()*16|0, y = Math.random()*16|0;
-      g.fillRect(x,y,2,2);
-      g.fillStyle = "#467229"; g.fillRect(x+1,y+1,1,1);
-    }
-  },
-  grass_side: g => {
-    g.fillStyle = "#866043"; g.fillRect(0,0,16,16);
-    for(let i=0;i<30;i++){
-      g.fillStyle = (Math.random()>0.5)?"#68472f":"#966c4a";
-      let x = Math.random()*16|0, y = Math.random()*16|0;
-      g.fillRect(x,y,3,2);
-      g.fillStyle = "#5e402a"; g.fillRect(x,y+2,2,1);
-    }
-    g.fillStyle = "#6aaa40"; g.fillRect(0,0,16,3);
-    for(let i=0;i<16;i++){
-      let len = 3 + (Math.random()*4|0);
-      g.fillRect(i, 3, 1, len);
-      g.fillStyle = (Math.random()>0.5)?"#598e35":"#79c04a";
-      g.fillRect(i, len+2, 1, 1);
-      g.fillStyle = "#6aaa40";
-    }
-  },
-  dirt: g => {
-    g.fillStyle = "#866043"; g.fillRect(0,0,16,16);
-    for(let i=0;i<40;i++){
-      g.fillStyle = (Math.random()>0.5)?"#68472f":"#966c4a";
-      let x = Math.random()*16|0, y = Math.random()*16|0;
-      g.fillRect(x,y,3,2);
-      g.fillStyle = "#5e402a"; g.fillRect(x,y+2,2,1);
-    }
-  },
-  stone: g => {
-    g.fillStyle = "#7d7d7d"; g.fillRect(0,0,16,16);
-    for(let x=0;x<16;x+=2) for(let y=0;y<16;y+=2){
-      g.fillStyle = (Math.random()>0.5)?"#707070":"#8a8a8a";
-      g.fillRect(x+(y%2), y, 2, 2);
-    }
-    g.fillStyle = "#555";
-    g.fillRect(2,2,2,1); g.fillRect(3,3,1,2);
-    g.fillRect(10,12,3,1); g.fillRect(12,11,1,1);
-  },
-  cobble: g => {
-    g.fillStyle = "#6b6b6b"; g.fillRect(0,0,16,16);
-    g.fillStyle = "#8a8a8a"; 
-    g.fillRect(1,1,6,6); g.fillRect(9,1,6,5);
-    g.fillRect(2,9,5,6); g.fillRect(9,8,6,7);
-    g.fillStyle = "#a5a5a5";
-    g.fillRect(1,1,4,1); g.fillRect(1,2,1,3);
-    g.fillRect(9,1,4,1); g.fillRect(9,2,1,3);
-    g.fillRect(2,9,3,1); g.fillRect(2,10,1,3);
-    g.fillRect(9,8,4,1); g.fillRect(9,9,1,4);
-    g.fillStyle = "#4a4a4a";
-    g.fillRect(2,7,6,1); g.fillRect(7,2,1,5);
-    g.fillRect(10,6,6,1); g.fillRect(15,2,1,4);
-    g.fillRect(3,15,5,1); g.fillRect(7,10,1,5);
-    g.fillRect(10,15,6,1); g.fillRect(15,9,1,6);
-    for(let i=0;i<40;i++){ g.fillStyle="rgba(0,0,0,0.1)"; g.fillRect(Math.random()*16|0,Math.random()*16|0,1,1); }
-  },
-  coal_ore: g => {
-    TEXDEFS.stone(g);
-    g.fillStyle = "#111";
-    for(let i=0;i<6;i++) { let x=1+Math.random()*12|0,y=1+Math.random()*12|0; g.fillRect(x,y,2,2); g.fillStyle="#333"; g.fillRect(x,y,1,1); g.fillStyle="#111"; }
-  },
-  iron_ore: g => {
-    TEXDEFS.stone(g);
-    g.fillStyle = "#d8af93";
-    for(let i=0;i<6;i++) { let x=1+Math.random()*12|0,y=1+Math.random()*12|0; g.fillRect(x,y,2,2); g.fillStyle="#fce5d4"; g.fillRect(x,y,1,1); g.fillStyle="#d8af93"; }
-  },
-  sand: g => {
-    g.fillStyle = "#dbce9f"; g.fillRect(0,0,16,16);
-    for(let i=0;i<40;i++){
-      g.fillStyle = (Math.random()>0.5)?"#c9ba8b":"#e8ddae";
-      g.fillRect(Math.random()*16|0, Math.random()*16|0, 2, 1);
-    }
-  },
-  log_side: g => {
-    g.fillStyle = "#40311f"; g.fillRect(0,0,16,16);
-    for(let x=0; x<16; x+=3){
-      g.fillStyle = "#665030"; g.fillRect(x, 0, 2, 16);
-      g.fillStyle = "#795f3a"; g.fillRect(x, 0, 1, 16);
-      g.fillStyle = "#40311f";
-      for(let i=0;i<3;i++) g.fillRect(x, Math.random()*16|0, 2, 1);
-    }
-  },
-  log_top: g => {
-    g.fillStyle = "#977a49"; g.fillRect(0,0,16,16);
-    g.strokeStyle="rgba(90,68,40,0.9)";
-    for (let r=2;r<9;r+=2) g.strokeRect(8-r,8-r,r*2,r*2);
-    g.strokeStyle="#40311f"; g.strokeRect(0,0,16,16); g.strokeRect(1,1,14,14);
-  },
-  leaves: g => {
-    g.clearRect(0,0,16,16);
-    g.fillStyle = "#3a7a28"; g.fillRect(0,0,16,16);
-    for(let i=0;i<12;i++) g.clearRect(Math.random()*15|0, Math.random()*15|0, 2, 2);
-    for(let i=0;i<25;i++){
-      g.fillStyle = (Math.random()>0.5)?"#265418":"#4da036";
-      g.fillRect(Math.random()*16|0, Math.random()*16|0, 3, 3);
-    }
-  },
-  planks: g => {
-    g.fillStyle = "#b28b56"; g.fillRect(0,0,16,16);
-    for(let i=0;i<40;i++){ g.fillStyle="rgba(0,0,0,0.05)"; g.fillRect(Math.random()*16|0,Math.random()*16|0,3,1); }
-    g.fillStyle = "#8a6639";
-    g.fillRect(0,3,16,1); g.fillRect(0,7,16,1); g.fillRect(0,11,16,1); g.fillRect(0,15,16,1);
-    g.fillRect(7,0,1,4); g.fillRect(11,4,1,4); g.fillRect(4,8,1,4); g.fillRect(13,12,1,4);
-    g.fillStyle = "#4d3921";
-    g.fillRect(1,1,1,1); g.fillRect(14,1,1,1); g.fillRect(2,5,1,1); g.fillRect(9,5,1,1);
-    g.fillRect(1,9,1,1); g.fillRect(14,9,1,1); g.fillRect(3,13,1,1); g.fillRect(10,13,1,1);
-  },
-  table_top: g => {
-    TEXDEFS.planks(g);
-    g.strokeStyle="#6e5025"; g.strokeRect(1,1,14,14); g.strokeRect(4,4,8,8);
-  },
-  table_side: g => {
-    TEXDEFS.planks(g);
-    g.fillStyle="#8a6a3a"; g.fillRect(2,3,5,5); g.fillRect(9,3,5,5);
-    g.fillStyle="#b59367"; g.fillRect(3,4,3,3); g.fillRect(10,4,3,3);
-  },
-  furnace_front: g => {
-    TEXDEFS.cobble(g);
-    g.fillStyle="#282828"; g.fillRect(3,4,10,6);
-    g.fillStyle="#ff8a24"; g.fillRect(5,7,6,3);
-    g.strokeStyle="#555"; g.strokeRect(2,2,12,12);
-  },
-  furnace_side: g => {
-    TEXDEFS.cobble(g);
-    g.strokeStyle="rgba(45,45,45,0.9)";
-    for (let y=3;y<15;y+=4) g.strokeRect(2,y,12,2);
-  },
-  chest: g => {
-    TEXDEFS.planks(g);
-    g.fillStyle="#5b3518"; g.fillRect(0,7,16,2);
-    g.fillStyle="#d9c46b"; g.fillRect(7,6,2,4);
-    g.strokeStyle="#6c421f"; g.strokeRect(1,2,14,12);
-  },
-  bed_top: g => {
-    g.fillStyle="#b62424"; g.fillRect(0,0,16,11);
-    g.fillStyle="#eeeeee"; g.fillRect(0,0,16,4);
-    g.fillStyle="#7c1717"; g.fillRect(0,11,16,5);
-  },
-  glass: g => {
-    g.clearRect(0,0,16,16);
-    g.fillStyle="rgba(150,210,235,0.45)"; g.fillRect(0,0,16,16);
-    g.strokeStyle="rgba(235,255,255,0.9)"; g.lineWidth=2; g.strokeRect(1,1,14,14);
-    g.fillStyle="rgba(255,255,255,0.65)"; g.fillRect(3,3,2,8);
-  },
-  bricks: g => {
-    g.fillStyle="#96493a"; g.fillRect(0,0,16,16);
-    for(let i=0;i<30;i++){ g.fillStyle=(Math.random()>0.5)?"#7a3528":"#a85c4d"; g.fillRect(Math.random()*16|0,Math.random()*16|0,3,2); }
-    g.fillStyle="#c4c4c4";
-    for (let y=3;y<16;y+=4) g.fillRect(0,y,16,1);
-    for (let y=0;y<16;y+=8){ g.fillRect(5,y,1,4); g.fillRect(12,y+4,1,4); }
-  },
-  door: g => {
-    TEXDEFS.planks(g);
-    g.strokeStyle="#5b3518"; g.strokeRect(2,1,12,15);
-    g.fillStyle="#d5b15f"; g.fillRect(11,8,2,2);
-  },
-  water: g => {
-    g.fillStyle="#346ec8"; g.fillRect(0,0,16,16);
-    for(let i=0;i<40;i++){ g.fillStyle="rgba(255,255,255,0.15)"; g.fillRect(Math.random()*16|0,Math.random()*16|0,3,1); }
-  },
-  torch: g => {
-    g.fillStyle="#8a5d2e"; g.fillRect(7,0,2,16);
-    g.fillStyle="#ffd942"; g.fillRect(7,0,2,5);
-    g.fillStyle="#fff3a8"; g.fillRect(7,0,2,3);
-  },
-  obsidian: g => {
-    g.fillStyle = "#150e1f"; g.fillRect(0,0,16,16);
-    for(let i=0;i<10;i++){
-      g.fillStyle = "#2a1c3d";
-      let x = Math.random()*12|0, y = Math.random()*12|0;
-      g.fillRect(x,y, 4, 2); g.fillRect(x+1,y-1, 2, 4);
-      g.fillStyle = "#462966"; g.fillRect(x+1,y+1, 1, 1);
-    }
-    g.strokeStyle="#0a050f"; g.strokeRect(0,0,16,16);
-  },
-  netherrack: g => {
-    g.fillStyle = "#612121"; g.fillRect(0,0,16,16);
-    for(let i=0;i<40;i++){
-      g.fillStyle = (Math.random()>0.5)?"#4a1515":"#8a2b2b";
-      let x=Math.random()*15|0, y=Math.random()*15|0;
-      g.fillRect(x,y,2,2);
-      if (Math.random()>0.6){ g.fillStyle="#2b0a0a"; g.fillRect(x,y+1,1,1); }
-    }
-  },
-  lava: g => {
-    g.fillStyle = "#d64700"; g.fillRect(0,0,16,16);
-    for(let i=0;i<8;i++){
-      g.fillStyle = "#f27900";
-      let x=Math.random()*12|0, y=Math.random()*12|0, s=3+Math.random()*3|0;
-      g.fillRect(x,y,s,s);
-      g.fillStyle = "#ffb000"; g.fillRect(x+1,y+1,s-2,s-2);
-    }
-  },
-  portal: g => {
-    g.clearRect(0,0,16,16);
-    g.fillStyle = "rgba(100, 20, 200, 0.7)"; g.fillRect(0,0,16,16);
-    for(let i=0;i<12;i++){
-      g.fillStyle = "rgba(180, 80, 255, 0.5)";
-      let x=Math.random()*14|0, y=Math.random()*14|0;
-      g.fillRect(x,y, 3, 3);
-      g.fillStyle = "rgba(220, 150, 255, 0.7)"; g.fillRect(x+1,y+1, 1, 1);
-    }
-  },
-  gravel: g => {
-    g.fillStyle = "#7a7a7a"; g.fillRect(0,0,16,16);
-    for(let i=0;i<80;i++){
-      let r = Math.random();
-      g.fillStyle = r>0.7?"#999999":r>0.4?"#666666":"#4f4f4f";
-      g.fillRect(Math.random()*16|0, Math.random()*16|0, 2, 2);
-    }
+// draw a filled stone base (shared by ore textures)
+function drawStoneBase(g){
+  pxmap(g,{
+    'A':'#585858','B':'#696969','C':'#747474','D':'#7e7e7e','E':'#8a8a8a','F':'#949494'
+  },[
+    'DDEEDDDDEEDEEDDD',
+    'DDEEDDDDEDDEDDDE',
+    'EDDDDDEEDDDDDDEE',
+    'DDEDDDDEEDDDDDDD',
+    'DEEDDDDDDEEDDDDE',
+    'EDDDEDDEDDDEDDEE',
+    'DDEADDDEDDEADDDD',
+    'EEDDDDDDAADEEDDE',
+    'DDDEEDDDEDDEDDDD',
+    'DDDEDDEDDDEDDDDE',
+    'EDEDDDDDDEDDDADD',
+    'DDDDDDEDDDEDDDAD',
+    'EDDDEEDDDDDEDDDD',
+    'DDEEDDDEADDDEDDD',
+    'DDDEDDDEDDEDDADD',
+    'EEDDDDDEDDDEDDDE',
+  ]);
+  // crack lines
+  g.fillStyle='#545454';
+  [[3,2],[4,3],[4,4],[5,5],[5,6],[6,6],[7,7],[8,7],[9,8],[10,8],
+   [10,9],[10,10],[11,10],[11,11],[5,4],[4,5],[3,5]].forEach(([x,y])=>g.fillRect(x,y,1,1));
+}
+// draw an oak planks base (shared by derived textures)
+function drawPlanksBase(g){
+  // base fill with grain
+  for(let y=0;y<16;y++) for(let x=0;x<16;x++){
+    const v=((x*7+y*3)^(x+y*5))&7;
+    const base=[0xba,0xb3,0xac,0xb7,0xbf,0xb2,0xbb,0xb8][v];
+    g.fillStyle=`rgb(${base},${(base*0.78)|0},${(base*0.46)|0})`;
+    g.fillRect(x,y,1,1);
   }
+  // plank separation lines (every 4 rows)
+  g.fillStyle='#7a5420';
+  g.fillRect(0,3,16,1); g.fillRect(0,7,16,1); g.fillRect(0,11,16,1); g.fillRect(0,15,16,1);
+  // vertical board joints (offset per plank row)
+  g.fillRect(7,0,1,3); g.fillRect(11,4,1,3); g.fillRect(4,8,1,3); g.fillRect(13,12,1,3);
+  // knot dots
+  g.fillStyle='#5c3e14';
+  g.fillRect(2,1,1,1); g.fillRect(13,1,1,1); g.fillRect(3,5,1,1); g.fillRect(8,5,1,1);
+  g.fillRect(2,9,1,1); g.fillRect(13,9,1,1); g.fillRect(5,13,1,1); g.fillRect(10,13,1,1);
+}
+// draw a cobblestone base (shared by furnace textures)
+function drawCobbleBase(g){
+  // mortar background
+  g.fillStyle='#484848'; g.fillRect(0,0,16,16);
+  // stone patches with noise
+  const patches=[
+    [1,1,6,6,'#858585','#9e9e9e','#707070'],
+    [9,1,6,5,'#7e7e7e','#969696','#686868'],
+    [2,9,5,6,'#888888','#a0a0a0','#727272'],
+    [9,8,6,7,'#828282','#9a9a9a','#6c6c6c'],
+  ];
+  patches.forEach(([x,y,w,h,base,hi,sh])=>{
+    g.fillStyle=base; g.fillRect(x,y,w,h);
+    g.fillStyle=hi;   g.fillRect(x,y,w-1,1); g.fillRect(x,y,1,h-1);
+    g.fillStyle=sh;   g.fillRect(x+w-1,y+1,1,h-1); g.fillRect(x+1,y+h-1,w-1,1);
+  });
+}
+const TEXDEFS={
+  // ── Grass top (Plains biome ~#79C05A) ─────────────────────────────────────
+  grass_top:g=>{
+    pxmap(g,{
+      'A':'#5a9a20','B':'#64a827','C':'#6fb42d','D':'#7bc035','E':'#85cc3b','F':'#8ed440'
+    },[
+      'CDDDCDDDECDCDDCD',
+      'DCCEDDDCDDCBDDCC',
+      'BDDCCBDDDCBBDDCE',
+      'CEBDDCCBDECEDDBC',
+      'DCCCBDDCBCDDCEDB',
+      'BDDCEDDCBDDCBDCC',
+      'CBBDCCDEDBBCDDCE',
+      'DDCCEBBCCDCEDDCB',
+      'CBDDCDDBBCCEBDDD',
+      'DCCBDCCDDDCBDCCE',
+      'EDDBCBBDDCCDCCBB',
+      'CBCDDEDDCCBDDDDD',
+      'DCBBCCDCDDECEDBB',
+      'BCDDBBDDBCEDDCCD',
+      'DBBCDDCEDDBBCDDD',
+      'CDDCBBDDBCDDCBCE',
+    ]);
+  },
+  // ── Grass side (dirt + green top strip) ───────────────────────────────────
+  grass_side:g=>{
+    // dirt base
+    pxmap(g,{
+      'a':'#7a5528','b':'#86602e','c':'#906938','d':'#9b7040','e':'#694824'
+    },[
+      'bbbbbbbbbbbbbbbb',
+      'bbbbbbbbbbbbbbbb',
+      'bbbbbbbbbbbbbbbb',
+      'bbbbbbbbbbbbbbbb',
+      'abbbccdcbcbbcbbb',
+      'bccdbbcbdccbddcc',
+      'cbbbdccbbbbcbcbb',
+      'dcbbbbccdbbcbbcc',
+      'bbcccbbbbccdcbbb',
+      'ccbbdbbcccbbbcdd',
+      'bbbccbbcbbbdcbbb',
+      'cbbbbccdbccbbccc',
+      'bbccbbbbbbcbbdbb',
+      'cccbbbcccbbcbbbb',
+      'bbbcccbbbcccbccc',
+      'ccbbbbccbbbbccbb',
+    ]);
+    // green grass strip: rows 0-3
+    pxmap(g,{
+      'G':'#6fb42d','H':'#7bc035','I':'#64a827','J':'#85cc3b'
+    },[
+      'GHJHGHHHGHJHGGHJ',
+      'HGGHHJJHHGHHJHGH',
+      'GJHGGJHGJHHJGHJH',
+      'JHHHJHGHJGGGHJHG',
+      '................',
+      '................','................','................','................',
+      '................','................','................','................',
+      '................','................','................',
+    ]);
+  },
+  // ── Dirt ──────────────────────────────────────────────────────────────────
+  dirt:g=>{
+    pxmap(g,{
+      'a':'#7a5528','b':'#86602e','c':'#906938','d':'#9b7040','e':'#694824','f':'#a07848'
+    },[
+      'bbbbbbbbbbbbbbbb',
+      'abbbccdcbcbbcbbb',
+      'bccdbbcbdccbddcc',
+      'cbbbdccbbbbcbcbb',
+      'dcbbbbccdbbcbbcc',
+      'bbcccbbbbccdcbbb',
+      'ccbbdbbcccbbbcdd',
+      'bbbccbbcbbbdcbbb',
+      'cbbbbccdbccbbccc',
+      'bbccbbbbbbcbbdbb',
+      'cccbbbcccbbcbbbb',
+      'bbbcccbbbcccbccc',
+      'ccbbbbccbbbbccbb',
+      'abbbccdcbcbbcbbb',
+      'bccdbbcbdccbddcc',
+      'bbbbbbbbbbbbbbbb',
+    ]);
+  },
+  // ── Stone ─────────────────────────────────────────────────────────────────
+  stone:g=>{ drawStoneBase(g); },
+  // ── Cobblestone ───────────────────────────────────────────────────────────
+  cobble:g=>{ drawCobbleBase(g); },
+  // ── Coal Ore ──────────────────────────────────────────────────────────────
+  coal_ore:g=>{
+    drawStoneBase(g);
+    // coal blobs at fixed positions
+    const blobs=[[1,1],[1,2],[2,1],[6,0],[7,0],[6,1],
+                 [0,8],[0,9],[1,8],[13,3],[14,3],[13,4],
+                 [12,11],[13,11],[12,12],[3,13],[4,13],[3,14]];
+    blobs.forEach(([x,y])=>{ g.fillStyle='#141414'; g.fillRect(x,y,1,1); });
+    // highlights on coal
+    [[1,1],[6,0],[0,8],[13,3],[12,11],[3,13]].forEach(([x,y])=>{
+      g.fillStyle='#2a2a2a'; g.fillRect(x,y,1,1);
+    });
+  },
+  // ── Iron Ore ──────────────────────────────────────────────────────────────
+  iron_ore:g=>{
+    drawStoneBase(g);
+    const blobs=[[1,1],[2,1],[1,2],[7,0],[8,0],[7,1],
+                 [14,4],[15,4],[14,5],[0,9],[1,9],[0,10],
+                 [11,11],[12,11],[11,12],[4,14],[5,14],[4,15]];
+    blobs.forEach(([x,y])=>{ g.fillStyle='#c8a080'; g.fillRect(x,y,1,1); });
+    [[1,1],[7,0],[14,4],[0,9],[11,11],[4,14]].forEach(([x,y])=>{
+      g.fillStyle='#e8c8a8'; g.fillRect(x,y,1,1);
+    });
+  },
+  // ── Sand ──────────────────────────────────────────────────────────────────
+  sand:g=>{
+    pxmap(g,{
+      'A':'#c7ba80','B':'#d4c78a','C':'#ddd394','D':'#e6da9c'
+    },[
+      'BBBCBBCBBCBBBBCB',
+      'CBBBCBBCBBCBBBCB',
+      'BCCBBCBBCBBCCBBB',
+      'BCBBCBBCBBCBCBBB',
+      'CBCBBBBCBCBCBBCB',
+      'BBCBBCBBCBBCBBCB',
+      'CBBCBBCBBCBBCBCB',
+      'BBBCBBCBBCBBBBCB',
+      'CBBBCBBBCCBBBBCB',
+      'BBCBBCBBCBBCBCBB',
+      'CBBCBCBBCBBCBBCB',
+      'BBCBBCBBCBBCBBBB',
+      'BBBCBBCBBCBBBBCB',
+      'CBBBCBBCBBCBBBCB',
+      'BCCBBCBBCBBCCBBB',
+      'BCBBCBBCBBCBCBBB',
+    ]);
+  },
+  // ── Oak Log Side (bark stripes) ───────────────────────────────────────────
+  log_side:g=>{
+    // 16 column pixel-precise bark stripes
+    const stripe=['#3b2812','#523618','#6b4a22','#7d5a2e','#8c6838','#7d5a2e',
+                  '#6b4a22','#523618','#3b2812','#523618','#6b4a22','#7d5a2e',
+                  '#8c6838','#7d5a2e','#6b4a22','#523618'];
+    for(let x=0;x<16;x++){
+      g.fillStyle=stripe[x]; g.fillRect(x,0,1,16);
+    }
+    // knot ring at y=6-9
+    g.fillStyle='#2a1a0a';
+    for(let x=0;x<16;x++) if((x+4)%8===0||x===0||x===15){ g.fillRect(x,6,1,4); }
+    g.fillStyle='#a07840';
+    for(let x=1;x<15;x++) if((x+2)%4===0){ g.fillRect(x,7,1,2); }
+  },
+  // ── Oak Log Top (growth rings) ────────────────────────────────────────────
+  log_top:g=>{
+    // base wood colour
+    g.fillStyle='#a07840'; g.fillRect(0,0,16,16);
+    // outer bark ring
+    g.fillStyle='#3b2812';
+    g.fillRect(0,0,16,1); g.fillRect(0,15,16,1);
+    g.fillRect(0,0,1,16); g.fillRect(15,0,1,16);
+    // inner rings (squares centred at 7,7 with spacing 2)
+    const rings=['#5c3c18','#7a5428','#9a7038','#b08848'];
+    [[6,6,4,4,'#5c3c18'],[4,4,8,8,'#7a5428'],[2,2,12,12,'#9a7038']].forEach(([x,y,w,h,c])=>{
+      g.strokeStyle=c; g.lineWidth=1; g.strokeRect(x+0.5,y+0.5,w-1,h-1);
+    });
+    // sapwood fill (lighter inner area)
+    g.fillStyle='#c0964a';
+    g.fillRect(7,7,3,3);
+    // cross pith lines
+    g.fillStyle='#7a5428';
+    g.fillRect(8,1,1,14); g.fillRect(1,8,14,1);
+  },
+  // ── Oak Leaves ────────────────────────────────────────────────────────────
+  leaves:g=>{
+    pxmap(g,{
+      ' ':null,'L':'#3d6a18','M':'#4a7c20','N':'#58902a','O':'#3a6015','P':'#60a030'
+    },[
+      ' LL MM LL NM L ',
+      'LNN LML LNL LNNL',
+      'MLLMLLMMLLMLLMLL',
+      'LNLLNLLLNLLLNLLL',
+      ' LM  ML  LN  ML ',
+      'LLNNLLNLLLNNLLNL',
+      'MLLLMLLMMLLLMLLM',
+      'LNNLLNLLLLNNLLNL',
+      ' MM  LN  MM  LN ',
+      'LLLMLLNLLLMLLNLL',
+      'NNLLLMNNLLLMNLLL',
+      'LLLNNLLLLLNNLLLL',
+      ' LN  MM  LN  MM ',
+      'LLLNLLLMLLNLLLML',
+      'NNLLLNNLLLNLLLNN',
+      'LLLMLLLLLLMLLLL ',
+    ]);
+  },
+  // ── Oak Planks ────────────────────────────────────────────────────────────
+  planks:g=>{ drawPlanksBase(g); },
+  // ── Crafting Table Top ────────────────────────────────────────────────────
+  table_top:g=>{
+    drawPlanksBase(g);
+    g.strokeStyle='#5a3c10'; g.lineWidth=1;
+    g.strokeRect(1.5,1.5,13,13); g.strokeRect(4.5,4.5,7,7);
+  },
+  // ── Crafting Table Side ───────────────────────────────────────────────────
+  table_side:g=>{
+    drawPlanksBase(g);
+    // dark leg columns
+    g.fillStyle='#6a4818'; g.fillRect(1,3,3,13); g.fillRect(12,3,3,13);
+    g.fillStyle='#4a2e0c'; g.fillRect(1,3,1,13); g.fillRect(14,3,1,13);
+    g.fillStyle='#b08840'; g.fillRect(2,4,1,11); g.fillRect(13,4,1,11);
+  },
+  // ── Furnace Front ─────────────────────────────────────────────────────────
+  furnace_front:g=>{
+    drawCobbleBase(g);
+    // dark opening
+    g.fillStyle='#1e1e1e'; g.fillRect(3,3,10,10);
+    g.fillStyle='#0a0a0a'; g.fillRect(4,4,8,8);
+    // fire glow
+    g.fillStyle='#ff6a00'; g.fillRect(5,8,6,4);
+    g.fillStyle='#ffaa00'; g.fillRect(6,9,4,3);
+    g.fillStyle='#ffdd44'; g.fillRect(7,10,2,2);
+    // frame border
+    g.fillStyle='#383838'; g.fillRect(2,2,12,1); g.fillRect(2,13,12,1);
+    g.fillRect(2,2,1,12); g.fillRect(13,2,1,12);
+  },
+  // ── Furnace Side ──────────────────────────────────────────────────────────
+  furnace_side:g=>{
+    drawCobbleBase(g);
+    g.fillStyle='rgba(20,20,20,0.55)';
+    for(let y=2;y<14;y+=4){ g.fillRect(2,y,12,1); }
+  },
+  // ── Chest ─────────────────────────────────────────────────────────────────
+  chest:g=>{
+    drawPlanksBase(g);
+    // border
+    g.fillStyle='#4a2c0c'; g.strokeStyle='#5c3818'; g.lineWidth=1;
+    g.strokeRect(1.5,1.5,13,13);
+    // dark band
+    g.fillStyle='#5c3818'; g.fillRect(0,6,16,1); g.fillRect(0,9,16,1);
+    g.fillStyle='#3a2008'; g.fillRect(0,7,16,2);
+    // latch
+    g.fillStyle='#d0a840'; g.fillRect(6,6,4,4);
+    g.fillStyle='#f0c850'; g.fillRect(7,7,2,2);
+    g.fillStyle='#4a2c0c'; g.fillRect(7,8,2,1);
+  },
+  // ── Bed Top ───────────────────────────────────────────────────────────────
+  bed_top:g=>{
+    // pillow (top)
+    g.fillStyle='#e8e8e8'; g.fillRect(0,0,16,5);
+    g.fillStyle='#f8f8f8'; g.fillRect(1,1,14,3);
+    g.fillStyle='#d0d0d0'; g.fillRect(0,4,16,1);
+    // blanket (red, bottom)
+    g.fillStyle='#aa2020'; g.fillRect(0,5,16,11);
+    g.fillStyle='#c42828'; g.fillRect(0,5,14,10);
+    g.fillStyle='#882020'; g.fillRect(0,15,16,1); g.fillRect(14,5,2,10);
+    // blanket fold detail
+    g.fillStyle='#8a1c1c'; g.fillRect(1,12,14,1);
+  },
+  // ── Glass ─────────────────────────────────────────────────────────────────
+  glass:g=>{
+    g.clearRect(0,0,16,16);
+    // faint tint
+    g.fillStyle='rgba(166,214,236,0.38)'; g.fillRect(0,0,16,16);
+    // sharp 1px white border
+    g.fillStyle='rgba(240,252,255,0.92)';
+    g.fillRect(0,0,16,1); g.fillRect(0,15,16,1);
+    g.fillRect(0,0,1,16); g.fillRect(15,0,1,16);
+    // inner cross highlight
+    g.fillStyle='rgba(255,255,255,0.55)';
+    g.fillRect(2,2,2,10); g.fillRect(2,2,10,2);
+  },
+  // ── Bricks ────────────────────────────────────────────────────────────────
+  bricks:g=>{
+    // mortar background
+    g.fillStyle='#a0a0a0'; g.fillRect(0,0,16,16);
+    // brick colour helper
+    const brick=(x,y,w,h)=>{
+      const v=((x+y*3)^(x*5+y))&3;
+      const c=['#9e3f36','#8c3430','#aa4840','#b05048'][v];
+      g.fillStyle=c; g.fillRect(x,y,w,h);
+      g.fillStyle='#c06050'; g.fillRect(x,y,w,1); g.fillRect(x,y,1,h);
+      g.fillStyle='#6a2820'; g.fillRect(x+w-1,y,1,h); g.fillRect(x,y+h-1,w,1);
+    };
+    // row 0 (y=0): full bricks offset 0
+    brick(0,0,6,3); brick(7,0,7,3); brick(14,0,2,3);
+    // row 1 (y=4): mortar line y=3
+    brick(0,4,3,3); brick(4,4,7,3); brick(12,4,4,3);
+    // row 2 (y=8)
+    brick(0,8,6,3); brick(7,8,7,3); brick(14,8,2,3);
+    // row 3 (y=12)
+    brick(0,12,3,3); brick(4,12,7,3); brick(12,12,4,3);
+  },
+  // ── Oak Door ──────────────────────────────────────────────────────────────
+  door:g=>{
+    drawPlanksBase(g);
+    // frame border
+    g.fillStyle='#5c3c14'; g.lineWidth=1; g.strokeStyle='#5c3c14';
+    g.strokeRect(1.5,0.5,13,15);
+    // horizontal panel divider
+    g.fillStyle='#4a2c08'; g.fillRect(1,7,14,2);
+    // window in upper panel
+    g.fillStyle='#2a3c50'; g.fillRect(3,1,5,5);
+    g.fillStyle='#3a5060'; g.fillRect(4,2,3,3);
+    // handle
+    g.fillStyle='#c0a030'; g.fillRect(11,8,2,3);
+    g.fillStyle='#e0c040'; g.fillRect(12,9,1,1);
+  },
+  // ── Water ─────────────────────────────────────────────────────────────────
+  water:g=>{
+    pxmap(g,{
+      'A':'#243ec0','B':'#2e50d0','C':'#3862e0','D':'#4274ec','E':'#4e86f8'
+    },[
+      'BCCBBCCCBBCBBCBB',
+      'BCDDCBBCCCBBBDCB',
+      'CBDCCCCBBBBDDBCC',
+      'CDDDCBBCBCDDCBCC',
+      'DCDDDCBBBCDDDDCB',
+      'BDDDDDDCBDDDDDDB',
+      'CBDDDCBDDDDDDCBB',
+      'BCDDCBBCDDDDDDCC',
+      'BBCDDDBBCDDDDCBB',
+      'CBBCDDBBCDDCBCBB',
+      'DCBBCDDCBBDCBBCC',
+      'CDDCBBCBBBBBBCCC',
+      'BDDDCBBCBBCBBDCB',
+      'CBDDDDCBBCBBDDCB',
+      'DBBDDDDCCBBDDDBB',
+      'CBBCDDDDCBBCDDCB',
+    ]);
+  },
+  // ── Torch ─────────────────────────────────────────────────────────────────
+  torch:g=>{
+    // stick
+    g.fillStyle='#7a5028'; g.fillRect(7,5,2,11);
+    g.fillStyle='#9a6838'; g.fillRect(7,5,1,11);
+    // torch head
+    g.fillStyle='#8a6030'; g.fillRect(6,4,4,4);
+    g.fillStyle='#a07840'; g.fillRect(7,4,2,3);
+    // flame
+    g.fillStyle='#f8a000'; g.fillRect(7,1,2,4);
+    g.fillStyle='#ffcc00'; g.fillRect(7,1,2,3);
+    g.fillStyle='#fff8a0'; g.fillRect(7,1,2,2);
+    g.fillStyle='#ffffff'; g.fillRect(7,1,1,1);
+  },
+  // ── Obsidian ──────────────────────────────────────────────────────────────
+  obsidian:g=>{
+    pxmap(g,{
+      'A':'#07050e','B':'#0f0c1a','C':'#170e26','D':'#1d1230','E':'#241638','F':'#2e1c46'
+    },[
+      'AABBAABABAABABBA',
+      'BABCBBABABABABBA',
+      'ABAABBCABABBAABB',
+      'BBABAABBBABBCBAB',
+      'ABBBABBABABBABBB',
+      'BAABBCBABBABBBAB',
+      'AABABBBABBCBABBA',
+      'BBAABABABABBABBB',
+      'ABBABBCBABBBABBA',
+      'BAABABBBABBABBAB',
+      'ABBBABBCABABAABB',
+      'BABABBAABBBABBBA',
+      'AABBBABABABBCBBB',
+      'BABBAABABBBABBAB',
+      'ABABBCBBABABABBA',
+      'BAABABBBCBBABABB',
+    ]);
+    // subtle purple crystal glints
+    g.fillStyle='#5a2888';
+    [[2,3],[9,7],[5,11],[13,13],[1,14],[11,2]].forEach(([x,y])=>g.fillRect(x,y,1,1));
+    g.fillStyle='#7a38a8';
+    [[2,3],[9,7],[5,11]].forEach(([x,y])=>g.fillRect(x,y,1,1));
+  },
+  // ── Netherrack ────────────────────────────────────────────────────────────
+  netherrack:g=>{
+    pxmap(g,{
+      'A':'#380808','B':'#521212','C':'#6a1818','D':'#7c2020','E':'#8e2828','F':'#9c3030'
+    },[
+      'CDDDCDCBCDDDCDDC',
+      'DCCDDDCBDDCBDDCC',
+      'BDDCCBDDEDCBDDCE',
+      'CEBDDCCBDECEDDBC',
+      'DCCCBDDCBCDDCEDB',
+      'BDDAEDDCBDDCBDCC',
+      'CBBDCCDEDBBCDDCE',
+      'DACCABBCCDCEDDCB',
+      'CBDDCDDBBCCEBDDD',
+      'DCCBDCCDDDCBDCCE',
+      'EDDBCBBDDCCDCCBB',
+      'CBCDDEDDCCBDDDDD',
+      'DCBBCCADDDECEDBB',
+      'BCDDBBDDBCEDDCCD',
+      'DBBCDDCEDDBBCDDD',
+      'CDDCBBDDBCDDCBCE',
+    ]);
+  },
+  // ── Lava ──────────────────────────────────────────────────────────────────
+  lava:g=>{
+    pxmap(g,{
+      'A':'#8c1400','B':'#b02800','C':'#d04400','D':'#e86000','E':'#f08000',
+      'F':'#f8a800','G':'#ffc800','H':'#ffe040'
+    },[
+      'BCCBBCCCBBCBBCBB',
+      'BDDCBBCCCBBBDCBB',
+      'CBDCCCCBBBBDDBCC',
+      'CDDDCBBCBCDDCBCC',
+      'DCDDDCBBBCDDDDCB',
+      'BDDDDDDCBDDDDDDB',
+      'CBDDDDDDDDDDDDCB',
+      'BCDDDDDDDDDDDDCC',
+      'BBCDDDDEDDDDDCBB',
+      'CBBCDDDEEDDDCBBB',
+      'DCBBCDDEFDDCCBCC',
+      'CDDCBBCEEFCBBBCC',
+      'BDDDCBBCEFCBBDCB',
+      'CBDDDDCBCGBBDDCB',
+      'DBBDDDDCCBBDDDBB',
+      'CBBCDDDDCBBCDDCB',
+    ]);
+  },
+  // ── Nether Portal ─────────────────────────────────────────────────────────
+  portal:g=>{
+    g.clearRect(0,0,16,16);
+    // base purple
+    g.fillStyle='rgba(88,10,188,0.72)'; g.fillRect(0,0,16,16);
+    // swirl/vortex pixels
+    pxmap(g,{
+      'P':'rgba(140,50,240,0.6)','Q':'rgba(180,100,255,0.7)',
+      'R':'rgba(220,160,255,0.55)','S':'rgba(255,200,255,0.4)'
+    },[
+      'P...P.P..P...P..',
+      '.P.PP..P..P.PP..',
+      '..PPP..PP.PPP...',
+      '.P..P.P..PP..P..',
+      'PP...PP..P...PP.',
+      '.PPQ..PP.PP..PP.',
+      '..PPQQ..PPPP..PP',
+      '.P.PQQP.PPQP..P.',
+      'PP..QQPP.PQPP..P',
+      'P..PQQP..PPQP...',
+      '.PPQP..PPQQP..P.',
+      'P..PQQ..PPQP..P.',
+      '.PP..QQP..PP.PP.',
+      '..P.PPQP..P..PP.',
+      '.P..PP..PP..PP..',
+      'P...P.PP..P...P.',
+    ]);
+    // bright centre glow
+    g.fillStyle='rgba(200,120,255,0.5)';
+    g.fillRect(5,5,6,6);
+    g.fillStyle='rgba(230,170,255,0.4)';
+    g.fillRect(6,6,4,4);
+  },
+  // ── Gravel ────────────────────────────────────────────────────────────────
+  gravel:g=>{
+    pxmap(g,{
+      'A':'#3c3c3c','B':'#545454','C':'#686868','D':'#7c7c7c',
+      'E':'#909090','F':'#a4a4a4','G':'#b4b4b4'
+    },[
+      'DDCDCDDEDDDCDDDC',
+      'DEDDDDCDDDEDDDCE',
+      'CDDCDDDCDDCDDEED',
+      'EDFEDDDDECDDDDDD',
+      'DDDCDDEDDDDCDDDE',
+      'DDEDDDFDDDDEDDDD',
+      'CDDDDDDDCDDDDCDD',
+      'DDDEDDDDDDEDDDDD',
+      'DCDDDDDEDDDCDDDE',
+      'EDDCDDDDCDDEDDDD',
+      'DDDEDDDDDCDDCDDE',
+      'DDDDDDCDDEDDDDDD',
+      'CDDDDDDDDDDDEDDD',
+      'DDDCDDEDDDDCDDDD',
+      'DEDDDDDDCDDEDDDD',
+      'DDDCDDDDDDDDDDCD',
+    ]);
+    // pebble outlines
+    g.fillStyle='#484848';
+    [[0,3,7,1],[8,0,7,1],[0,7,6,1],[7,5,8,1],[0,11,5,1],[6,9,5,1],[12,8,4,1],
+     [0,15,7,1],[8,13,7,1],[3,0,1,4],[10,2,1,3],[2,7,1,4],[13,4,1,4],[5,11,1,4],[11,12,1,4]]
+     .forEach(([x,y,w,h])=>{ g.fillStyle='#404040'; g.fillRect(x,y,w,h); });
+  },
 };
 const textures={};
 for (const k in TEXDEFS){ const c=makeCanvas(TEXDEFS[k]); textures[k]={canvas:c,tex:canvasTex(c)}; }
